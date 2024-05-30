@@ -19,7 +19,7 @@ void remove_list_entry(struct Node * entry)
     *indirect = entry->next;
 }
 
-int main(void){
+int main(void) {
     struct Node * p = NULL, *entry;
     for (int i = 0; i < 10; i++) {
         struct Node * q = (struct Node *)malloc(sizeof(struct Node));

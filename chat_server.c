@@ -27,6 +27,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  pthread_mutex_init(&mutx, NULL);
+  serv_sock = socket(PF_INET, SOCK_STREAM, 0);
+
   memset(&serv_adr, 0, sizeof(serv_adr));
   serv_adr.sin_family = AF_INET;
   serv_adr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -51,4 +54,45 @@ int main(int argc, char *argv[]) {
   }
   close(serv_sock);
   return 0;
+}
+
+void *handle_clnt(void *arg)
+{
+  int clnt_sock = *(int *)arg;
+  int str_len = 0, i;
+  char msg[BUF_SIZE];
+
+  while ((str_len = read(clnt_sock, msg, sizeof(msg))) != 0)
+    send_msg(msg, str_len);
+
+  pthread_mutex_lock(&mutx);
+  for (i = 0; i < clnt_cnt; i++)
+  {
+    if (clnt_sock == clnt_socks[i])
+    {
+      while (i++ < clnt_cnt - 1)
+        clnt_socks[i] = clnt_socks[i+1];
+      break;
+    }
+  }
+  clnt_cnt--;
+  pthread_mutex_unlock(&mutx);
+  close(clnt_sock);
+  return NULL;
+}
+
+void send_msg(char *msg, int len)
+{
+  int i;
+  pthread_mutex_lock(&mutx);
+  for (i = 0; i < clnt_cnt; i++)
+    write(clnt_socks[i], msg, len);
+  pthread_mutex_unlock(&mutx);
+}
+
+void error_handling(char *msg)
+{
+  fputs(msg, stderr);
+  fputs("\n", stderr);
+  exit(1);
 }
